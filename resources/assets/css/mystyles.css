@@ -1,0 +1,176 @@
+/*YOUR CUSTOM STYLES*/
+
+/*.tripDisplay{
+    color: white;
+}
+
+.tripDisplay > ul{
+    list-style: none;
+    display: flex;
+}
+
+.tripDisplay > ul > li{
+    flex: 1;
+}*/
+
+.tripTag{
+    list-style: none;
+}
+
+.tripTag > li:first-child > p{
+    color: white;
+    font-size: 1.3em;
+}
+
+.tripDisplayContainer{
+    color: #4d4d4e;
+    position: absolute;
+    top: 170px;
+    right: 10px;
+    z-index: 999999999999999;
+}
+
+.marquee > li > a {
+    color: white;
+    font-size: 2em;
+    padding: 30px;
+}
+
+.marquee > li > a:hover{
+    color: #ed8323;
+}
+
+.search-tabs-bg > .tabbable >.tab-content > .tab-pane {
+    width: 80%;
+    padding: 10px 10px 10px 80px;
+    background-color: rgba(255, 255, 255, .3);
+    color: white;
+    border-radius: 10px;
+    margin: auto;
+}
+
+.search-tabs-bg > .tabbable >.tab-content > .tab-pane > h2{
+    color: #ffffff;
+}
+
+.js-select {
+    margin: 50px;
+    border: 1px solid #111;
+    background: transparent;
+    width: 150px;
+    padding: 5px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    height: 34px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.custom-select{
+    width: 200px;
+    padding: 5px 18px 10px 45px;
+    height: 45px;
+    line-height: 1.6em;
+    font-size: 13px;
+}
+
+form.logo{
+    min-height: 300px;
+    min-width: 300px;
+    border-color: rgb(150, 102, 80);
+}
+
+form.profile{
+    min-width: 300px;
+    min-height: 300px;
+    border-color: rgb(150, 102, 80);
+}
+
+.dropzone .preview .details img, .dropzone-previews .preview .details img {
+    width: 250px;
+    height: 250px;
+}
+
+.dropzone .preview{
+    padding: 0 !important;
+    margin: 0;
+    border: none;
+}
+
+.booking-item{
+    margin-bottom: 10px;
+    border: 1px dashed #ccc;
+}
+
+
+
+/* Large Devices, Wide Screens */
+@media (max-width: 1200px) 
+{
+
+    .search-tabs-bg > .tabbable >.tab-content > .tab-pane {
+        background-color: rgba(77, 77, 78, 0.5);
+        width: 100%;
+    }
+
+    button.search{
+        font-size: 1em;
+    }
+
+    .tripTag > li:first-child > p{
+        color: inherit;
+    }
+
+}
+
+/* Medium Devices, Desktops */
+@media only screen and (max-width : 992px) 
+{
+    .full-height{
+        background: white;
+        height: 100%;
+    }
+    .full {
+        height: 100%;
+    }
+
+    .tripTag > li:first-child > p{
+        color: inherit;
+    }
+}
+
+
+/* Small Devices, Tablets */
+@media only screen and (max-width : 768px) 
+{
+    .search-tabs-bg > .tabbable > .tab-content > .tab-pane{
+        background-color: rgba(77, 77, 78, 0.5);
+    }
+    .full-height{
+        background: white;
+        height: 100%;
+    }
+
+    .tripTag > li:first-child > p{
+        color: inherit;
+    }
+
+    .full {
+        height: 100%;
+    }
+}
+
+
+/* Extra Small Devices, Phones */ 
+@media only screen and (max-width : 480px) 
+{
+
+}
+
+
+/* Custom, iPhone Retina */ 
+@media only screen and (max-width : 320px) 
+{
+
+}

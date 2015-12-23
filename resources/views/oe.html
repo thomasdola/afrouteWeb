@@ -1,0 +1,379 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Article;
+use App\Booking;
+use App\CashCode;
+use App\Outlet;
+use App\Repositories\TimeRepository;
+use App\Station;
+use App\TravelCompany;
+use App\Trip;
+//use Barryvdh\DomPDF\PDF;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+
+use App\Http\Requests;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Storage;
+use Psy\Exception\ErrorException;
+use Vsmoraes\Pdf\Pdf;
+
+
+class PagesController extends Controller
+{
+
+	/**
+	 * @var TimeRepository
+	 */
+	private $time;
+	/**
+	 * @var PDF
+	 */
+	private $pdf;
+
+
+	/**
+	 * @param TimeRepository $time
+	 * @param PDF $pdf
+	 */
+	public function __construct(TimeRepository $time, Pdf $pdf)
+	{
+		$this->middleware('user-auth', ['only'=>'receipt']);
+		$this->time = $time;
+
+		$this->pdf = $pdf;
+	}
+
+
+	/**
+	 * @return mixed
+	 */
+	public function ticketDownload(){
+		$name = 'thomas';
+		$html = view('mails.ticket', ['name'=>$name])->render();
+		return $this->pdf->load($html)->download();
+	}
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function welcome()
+	{
+//		$collection = array();
+//		for($i = 1; $i < 10; $i++){
+//			$ukey = strtoupper(substr(sha1(microtime() . $i), rand(0, 5), 25));
+//			if(!in_array($ukey, $collection)){ // you can check this in database as well.
+//				$collection[] = implode("-", str_split($ukey, 5));
+//			}
+//		}
+//		dd($collection);
+
+		return view('pages.welcome');
+	}
+
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function all_trips()
+    {
+	    $allTrips = Trip::all();
+		$travel_companies = TravelCompany::all();
+	    return view('pages.all_trips', ['trips'=>$allTrips, 'travel_companies'=>$travel_companies]);
+    }
+
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function about_us()
+	{
+		return view('pages.about');
+	}
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function all_stations()
+	{
+		$stations = Station::all();
+		return view('pages.all_stations', ['stations'=> $stations]);
+	}
+
+	/**
+	 * @param Article $article
+	 *
+	 * @return \Illuminate\View\View
+	 */
+	public function posts(Article $article)
+	{
+		$articles = $article->where('published_at', '<=', Carbon::today())
+			->orderBy('updated_at', 'desc')
+			->get();
+		return view('pages.all_posts', ['posts'=>$articles]);
+	}
+
+	/**
+	 * @param $slug
+	 * @param Article $article
+	 *
+	 * @return \Illuminate\View\View
+	 */
+	public function post($slug, Article $article)
+	{
+		$article = $article->where('slug', $slug)->first();
+		return view('pages.post', ['article'=>$article]);
+	}
+
+	public function soon()
+	{
+		return view('pages.newSoon');
+	}
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function contact_us()
+	{
+		return view('pages.contact_us');
+	}
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function terms()
+	{
+		return view('pages.terms');
+	}
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function policy()
+	{
+		return view('pages.policy');
+	}
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function faq()
+	{
+		return view('pages.faq');
+	}
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function check_result(Request $request)
+	{
+		$this->validate($request,
+			[
+				'code'=>'required',
+				'checkType'=>'required',
+			]);
+
+
+		if($request->checkType == 'ticket')
+		{
+			$code = strtoupper($request->code);
+			$code_type = "booking_ticket";
+			$ticket = Booking::where('code', $code)->first();
+			if($ticket)
+			{
+				return view('pages.check_result',
+					[
+						'code_type'=>$code_type,
+						'ticket'=>$ticket,
+					]);
+			}else
+			{
+				return view('pages.check_result',
+					[
+						'code_type'=>$code_type,
+						'ticket'=>$ticket,
+					])->withErrors('No Ticket Found');
+			}
+		}else
+		{
+			$code_type = "cash_card";
+			$code = $request->code;
+			$cashCard = CashCode::where('code',$code)->first();
+			if($cashCard)
+			{
+				return view('pages.check_result',
+					[
+						'code_type'=>$code_type,
+						'card'=>$cashCard,
+					]);
+			}else
+			{
+				return view('pages.check_result',
+					[
+						'code_type'=>$code_type,
+						'card'=>$cashCard,
+					])->withErrors('No Card Found');
+			}
+		}
+	}
+
+	/**
+	 * @param Request $request
+	 *
+	 * @return $this
+	 */
+	public function search(Request $request)
+	{
+		$this->validate($request,
+			[
+				'departure_station'=>'required|different:destination_station',
+				'destination_station'=>'required',
+				'start'=>'required',
+			]);
+
+
+		$travel_companies = TravelCompany::all();
+
+		$to = $request->destination_station;
+		$from = $request -> departure_station;
+		$departure_date = Carbon::parse($request->start);
+		$start = Carbon::parse($request->start)->startOfDay();
+		$end = Carbon::parse($request->start)->endOfDay();
+		$tripsAll = Trip::all();
+
+		if($departure_date < Carbon::today())
+		{
+			session()->flash('search_error', 'Invalid Date Provided');
+			return redirect()->back();
+		}else
+		{
+			if($departure_date->eq(Carbon::today()))
+			{
+				$trips = $this->getTodayOneWayTrips($from, $to);
+			}
+			else
+			{
+				$trips = Trip::whereraw('departure_station = ? AND destination_station = ?', [$from, $to])
+							->where('departure_date', $departure_date)
+							->get();
+				dd($request->all(), $start, $end, $departure_date, $trips);
+			}
+		}
+
+		return view('pages.all_trips', ['travel_companies'=> $travel_companies , 'from'=>$from, 'to'=>$to, 'start'=>$departure_date])->with('trips', $trips);
+
+	}
+
+
+
+	/**
+	 * @return \Illuminate\View\View
+	 */
+	public function receipt()
+	{
+		return view('pages.receipt');
+	}
+
+
+	public function cvp()
+	{
+		$vp = Outlet::all();
+//		dd($vp);
+		return view('pages.outlets')->with('outlets', $vp);
+	}
+
+	/**
+	 * @param Request $request
+	 *
+	 * @return \Illuminate\Http\RedirectResponse
+	 */
+	public function sendFeedback(Request $request)
+	{
+		$this->validate($request, ['name'=>'required','email'=>'required', 'message'=>'required|min:30|max:1000']);
+		$msg = $request->message;
+		$from = $request->email;
+		$name = $request->name;
+
+		try
+		{
+			Mail::send([$name, $msg], function ($message) use($from, $name) {
+			    $message->from($from, 'Client Support - '.ucwords($name));
+
+			    $message->to('support@afroute.com');
+			});
+		}catch (\ErrorException $e)
+		{
+			return redirect()->route('contact_us')->withErrors('Sorry, Your message could not be sent.');
+		}
+
+		session()->flash('info', 'Message Sent Successfully');
+		return redirect()->route('contact_us');
+	}
+
+
+	/**
+	 * @param $from
+	 * @param $to
+	 *
+	 * @return array
+	 */
+	private function getTodayReturningTrips($from, $to)
+	{
+		if($this->time->currentTimeFrame() == 'Morning')
+		{
+			$trips = Trip::whereraw('departure_date = ? AND returning_date = ? AND departure_station = ? AND destination_station = ?',
+				[Carbon::today(), Carbon::today(), $from, $to])
+				->whereIn('departure_time', ['Afternoon', 'Evening'])
+				->get();
+		}
+		elseif($this->time->currentTimeFrame() == 'Afternoon')
+		{
+			$trips = Trip::whereraw('departure_date = ? AND returning_date = ? AND departure_station = ? AND destination_station = ?',
+				[Carbon::today(), Carbon::today(), $from, $to])
+				->where('departure_time', 'Evening')
+				->get();
+		}
+		else
+		{
+			$trips = [];
+		}
+		return $trips;
+	}
+
+
+	/**
+	 * @param $from
+	 * @param $to
+	 *
+	 * @return array
+	 */
+	private function getTodayOneWayTrips($from, $to)
+	{
+		if($this->time->currentTimeFrame() == "Morning")
+	    {
+		    $trips = Trip::whereraw('departure_date = ? AND departure_station = ? AND destination_station = ?',
+			    [Carbon::today(), $from, $to])
+			    ->whereIn('departure_time', ['Afternoon', 'Evening'])
+			    ->get();
+	    }
+	    elseif($this->time->currentTimeFrame() == "Afternoon")
+	    {
+		    $trips = Trip::whereraw('departure_date = ? AND departure_station = ? AND destination_station = ?',
+			    [Carbon::today(), $from, $to])
+			    ->where('departure_time', 'Evening')
+			    ->get();
+	    }else
+	    {
+		    $trips = [];
+	    }
+
+		return $trips;
+	}
+
+
+}
